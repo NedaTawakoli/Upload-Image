@@ -98,5 +98,13 @@ class productController extends Controller
     public function destroy(string $id)
     {
         //
+    $product = Product::findOrFail($id);
+    if($product->image_url && Storage::disk('public')->exits($product->image_url)){
+         Storage::disk('public')->delete($product->image_url);
+    }
+    $product->delete();
+    return response()->json([
+        "data"=>"product with its imsge has benn removed"
+    ]);
     }
 }
