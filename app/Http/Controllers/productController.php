@@ -1,8 +1,10 @@
 <?php
 
-pricespace App\Http\Controllers;
+namespace App\Http\Controllers;
 
 use App\Models\Product;
+use Exception;
+use Illuminate\Container\Attributes\Storage;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -22,7 +24,7 @@ class productController extends Controller
     public function store(Request $request)
     {
         //
-        try{
+            try{
        $validated = $request->validate([
             "name"=>["required","string","min:3",
             Rule::unique("products","name")
@@ -61,9 +63,33 @@ class productController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function update(Request $request, string $id)
+    public function update(Request $request, Product $product)
     {
         //
+        $product = Product::findOrFail($id);
+     $validated = $request->validate([
+            "name"=>["string","nullable","min:3","max:40",
+            Rule::unique("products","name")->ignore($product->id)],
+            "price"=>"nullable|numaric|decimal:0,2",
+            "image"=>"nullable|image|mimes:jpeg,jpg,gif,png",
+        ],
+        [
+            "name.min"=>"the name should be at least 3 chars",
+            "name.string"=>"the name should be a text",
+            "price.numeric"=>"the price field accepts only numeric",
+            "image.mimes"=>"the file must be with jpeg,jpg,png,gif extenction"
+        ]);
+         $product->name = $validated["name"];
+         $product->price = $validated["price"];
+         $imgPath = "";
+         if($request->hasFile('image')){
+            if($product->image_url && Storage::disk('public')->exists($product->image_url)){
+                Storage::disk('public')->delete($product->image_url);
+            }
+           $imgPath = $request->file('image')->store("product","public");
+           $product->image_url = $imgPath;
+         }
+         $product->update();
     }
 
     /**
